@@ -1,0 +1,25 @@
+#!name=YouTube 去广告
+#!desc=通过 MITM 拦截 YouTube 播放/浏览/搜索接口并移除广告字段，配合 googlevideo 广告请求置空，实现观看、信息流、搜索、Shorts 去广告。需 Surge 5 及以上并开启 MITM。
+#!author=Doubao
+#!system=surge 5
+
+# 使用方法：Surge 5 -> 模块 -> 通过 URL 安装本文件；然后在 设置/通用 开启 MITM 并信任证书。
+
+[Rule]
+AND,((DOMAIN-SUFFIX,googlevideo.com), (PROTOCOL,UDP)),REJECT-NO-DROP
+
+[URL Rewrite]
+(^https?\/\/[\w-]+\.googlevideo\.com\/(?!dclk_video_ads).+?)&ctier=L(&.+?),ctier,(.+) $1$2$3 302
+
+[Map Local]
+^https?:\/\/[\w-]+\.googlevideo\.com\/(?!(dclk_video_ads|videoplayback\?)).+&oad data-type=text data=" " status-code=200
+^https?:\/\/(www|s)\.youtube\.com\/api\/stats\/ads data-type=text data=" " status-code=200
+^https?:\/\/(www|s)\.youtube\.com\/(pagead|ptracking) data-type=text data=" " status-code=200
+^https?:\/\/s\.youtube\.com\/api\/stats\/qoe\?adcontext data-type=text data=" " status-code=200
+
+[Script]
+YouTube(Request) = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|reel\/reel_watch_sequence),requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/1271818478/Surge-YouTube-Ads/main/youtube-ads-request.js
+YouTube(Response) = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting),requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/1271818478/Surge-YouTube-Ads/main/youtube-ads-response.js
+
+[MITM]
+hostname = %APPEND% *.googlevideo.com, www.youtube.com, s.youtube.com, youtubei.googleapis.com
